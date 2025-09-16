@@ -1,97 +1,200 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# NabhaLearn 📚
 
-# Getting Started
+**AI-Powered Offline-First Education App**
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+NabhaLearn is a revolutionary React Native application that brings AI-powered education to offline environments, making quality learning accessible even without internet connectivity.
 
-## Step 1: Start Metro
+## 🌟 Features
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+### 🎯 Core Features
+- **📱 Offline-First Architecture** - Download content once, learn anywhere
+- **🎚️ Smart Video Compression** - Multiple resolution options (144p to 1080p)
+- **🤖 AI-Powered Upscaling** - Real-time video enhancement using on-device AI
+- **📚 Interactive Lessons** - Engaging educational content with progress tracking
+- **💾 Storage Management** - Intelligent storage optimization and tracking
+- **🎮 Gamified Learning** - Mini-games and interactive elements for engagement
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+### 🎨 User Interface
+- **Modern Design** - Clean, intuitive mobile-first interface
+- **Responsive Layout** - Optimized for various screen sizes
+- **Dark/Light Theme** - User preference support
+- **Accessibility** - Screen reader and accessibility features
 
-```sh
-# Using npm
-npm start
+## 🚀 Getting Started
 
-# OR using Yarn
-yarn start
+### Prerequisites
+
+Before running this project, make sure you have the following installed:
+
+- **Node.js** (v18 or higher)
+- **React Native CLI** (`npm install -g @react-native-community/cli`)
+- **Android Studio** (for Android development)
+- **Xcode** (for iOS development - macOS only)
+- **Java Development Kit (JDK)** (v17 or higher)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd NabhaLearn
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **iOS Setup** (macOS only)
+   ```bash
+   cd ios && pod install && cd ..
+   ```
+
+4. **Android Setup**
+   - Open Android Studio
+   - Install Android SDK (API level 23 or higher)
+   - Set up Android emulator or connect physical device
+
+### Running the App
+
+#### Android
+```bash
+# Start Metro bundler
+npx react-native start
+
+# Run on Android (in a new terminal)
+npx react-native run-android
 ```
 
-## Step 2: Build and run your app
+#### iOS (macOS only)
+```bash
+# Start Metro bundler
+npx react-native start
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+# Run on iOS (in a new terminal)
+npx react-native run-ios
 ```
 
-### iOS
+## 📱 App Structure
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
+```
+NabhaLearn/
+├── src/
+│   ├── components/          # Reusable UI components
+│   │   ├── ResolutionSlider.tsx
+│   │   └── VideoDownloadCard.tsx
+│   ├── screens/            # Main app screens
+│   │   └── VideoDownloadScreen.tsx
+│   ├── types/              # TypeScript type definitions
+│   │   └── index.ts
+│   ├── utils/              # Utility functions
+│   └── navigation/         # Navigation configuration
+├── android/                # Android-specific code
+├── ios/                    # iOS-specific code
+├── App.tsx                 # Main app component
+├── index.js                # App entry point
+└── package.json            # Dependencies and scripts
 ```
 
-Then, and every time you update your native dependencies, run:
+## 🎯 Key Components
 
-```sh
-bundle exec pod install
-```
+### ResolutionSlider
+Interactive component for selecting video download quality with file size information.
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+### VideoDownloadCard
+Displays lesson information with download progress and management options.
 
-```sh
-# Using npm
-npm run ios
+### VideoDownloadScreen
+Main screen orchestrating the download experience with storage tracking.
 
-# OR using Yarn
-yarn ios
-```
+## 🛠️ Technology Stack
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+- **Frontend**: React Native 0.74.5
+- **Language**: TypeScript
+- **State Management**: React Hooks
+- **Navigation**: React Navigation (planned)
+- **Storage**: AsyncStorage (planned)
+- **AI Integration**: ONNX Runtime (planned)
+- **Video Processing**: React Native Video (planned)
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+## 🔮 Planned Features
 
-## Step 3: Modify your app
+### Phase 1 - Core Functionality
+- [ ] Video player with AI upscaling
+- [ ] Offline content management
+- [ ] Progress tracking and analytics
+- [ ] User authentication
 
-Now that you have successfully run the app, let's make changes!
+### Phase 2 - Advanced Features
+- [ ] Teacher dashboard
+- [ ] Assignment system
+- [ ] Device-to-device sharing
+- [ ] Advanced AI tutor integration
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+### Phase 3 - Platform Expansion
+- [ ] Web version
+- [ ] Desktop applications
+- [ ] Multi-language support
+- [ ] Advanced analytics
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+## 🎨 Design Philosophy
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+NabhaLearn follows these design principles:
 
-## Congratulations! :tada:
+- **Offline-First**: Core functionality works without internet
+- **AI-Enhanced**: Intelligent features improve learning experience
+- **Accessible**: Designed for users with varying technical abilities
+- **Scalable**: Architecture supports growth and feature expansion
+- **Performance**: Optimized for low-end devices and limited storage
 
-You've successfully run and modified your React Native App. :partying_face:
+## 📊 Performance Considerations
 
-### Now what?
+- **Video Compression**: Multiple resolution options for storage optimization
+- **Lazy Loading**: Content loaded on-demand
+- **Caching**: Intelligent caching strategies
+- **Memory Management**: Efficient resource utilization
+- **Battery Optimization**: Minimal background processing
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+## 🤝 Contributing
 
-# Troubleshooting
+We welcome contributions! Please follow these steps:
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-# Learn More
+### Development Guidelines
 
-To learn more about React Native, take a look at the following resources:
+- Follow TypeScript best practices
+- Write meaningful commit messages
+- Add tests for new features
+- Update documentation as needed
+- Follow the existing code style
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- React Native community for the excellent framework
+- Educational technology pioneers
+- Open source contributors
+- Beta testers and feedback providers
+
+## 📞 Support
+
+For support, email support@nabhalearn.com or join our community Discord.
+
+## 🔗 Links
+
+- [Documentation](https://docs.nabhalearn.com)
+- [Community Forum](https://community.nabhalearn.com)
+- [Bug Reports](https://github.com/nabhalearn/nabhalearn/issues)
+- [Feature Requests](https://github.com/nabhalearn/nabhalearn/discussions)
+
+---
+
+**Made with ❤️ for accessible education worldwide**
