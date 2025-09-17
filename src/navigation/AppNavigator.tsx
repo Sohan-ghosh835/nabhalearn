@@ -27,10 +27,14 @@ type ScreenName = keyof RootStackParamList;
 const AppNavigator: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<ScreenName>('Login');
   const [navigationHistory, setNavigationHistory] = useState<ScreenName[]>(['Login']);
+  const [currentUserType, setCurrentUserType] = useState<'student' | 'teacher' | null>(null);
 
-  const navigate = (screenName: ScreenName) => {
+  const navigate = (screenName: ScreenName, userType?: 'student' | 'teacher') => {
     setCurrentScreen(screenName);
     setNavigationHistory(prev => [...prev, screenName]);
+    if (userType) {
+      setCurrentUserType(userType);
+    }
   };
 
   const goBack = React.useCallback(() => {
@@ -56,7 +60,7 @@ const AppNavigator: React.FC = () => {
       case 'TeacherDashboard':
         return <TeacherDashboard navigation={{ navigate, goBack }} />;
       case 'FileTransfer':
-        return <FileTransferScreen navigation={{ navigate, goBack }} />;
+        return <FileTransferScreen navigation={{ navigate, goBack }} userType={currentUserType} />;
       case 'OfflineTransfer':
         return <OfflineTransferScreen navigation={{ navigate, goBack }} />;
       case 'CloudTransfer':

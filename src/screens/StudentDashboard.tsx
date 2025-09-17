@@ -16,7 +16,7 @@ type ScreenName = keyof RootStackParamList;
 
 interface Props {
   navigation: {
-    navigate: (screenName: ScreenName) => void;
+    navigate: (screenName: ScreenName, userType?: 'student' | 'teacher') => void;
     goBack: () => void;
   };
 }
@@ -64,7 +64,7 @@ const StudentDashboard: React.FC<Props> = ({ navigation }) => {
 
           <TouchableOpacity
             style={styles.optionCard}
-            onPress={() => navigation.navigate('FileTransfer')}
+            onPress={() => navigation.navigate('FileTransfer', 'student')}
           >
             <Text style={styles.optionIcon}>📁</Text>
             <Text style={styles.optionTitle}>File Transfer</Text>

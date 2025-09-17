@@ -29,8 +29,8 @@ android {
         applicationId "com.nabhalearn"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 24
+        versionName "24.0"
     }
     
     compileOptions {
@@ -71,5 +71,10 @@ repositories {
 
 dependencies {
     implementation("com.facebook.react:react-android:0.74.5")
-    implementation("com.facebook.react:hermes-android:0.74.5")
+    
+    if (hermesEnabled.toBoolean()) {
+        implementation("com.facebook.react:hermes-android:0.74.5")
+    } else {
+        implementation jscFlavor
+    }
 }

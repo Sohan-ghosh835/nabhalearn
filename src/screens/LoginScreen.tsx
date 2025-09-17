@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   StatusBar,
   Dimensions,
   BackHandler,
+  Platform,
+  PermissionsAndroid,
 } from 'react-native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
@@ -17,7 +19,7 @@ type ScreenName = keyof RootStackParamList;
 
 interface Props {
   navigation: {
-    navigate: (screenName: ScreenName) => void;
+    navigate: (screenName: ScreenName, userType?: 'student' | 'teacher') => void;
     goBack: () => void;
   };
 }
@@ -29,6 +31,82 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [userType, setUserType] = useState<'student' | 'teacher' | null>(null);
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
+  const [permissionsGranted, setPermissionsGranted] = useState(false);
+
+  // Request all necessary permissions when app opens
+  const requestAllPermissions = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const androidVersion = Platform.Version;
+        let allPermissions = [];
+
+        // Bluetooth permissions
+        if (androidVersion >= 31) {
+          // Android 12+ (API 31+)
+          allPermissions = [
+            PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+            PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+            PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE,
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          ];
+        } else {
+          // Android 11 and below
+          allPermissions = [
+            PermissionsAndroid.PERMISSIONS.BLUETOOTH,
+            PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADMIN,
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          ];
+        }
+
+        // Storage permissions
+        if (androidVersion >= 33) {
+          // Android 13+ (API 33+)
+          allPermissions.push(
+            PermissionsAndroid.PERMISSIONS.READ_MEDIA_VIDEO,
+            PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES
+          );
+        } else {
+          // Android 12 and below
+          allPermissions.push(
+            PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
+            PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+          );
+        }
+
+        // Request all permissions at once
+        const granted = await PermissionsAndroid.requestMultiple(allPermissions);
+        
+        const allGranted = Object.values(granted).every(
+          permission => permission === PermissionsAndroid.RESULTS.GRANTED
+        );
+
+        if (allGranted) {
+          setPermissionsGranted(true);
+          console.log('All permissions granted');
+        } else {
+          Alert.alert(
+            'Permissions Required',
+            'Some permissions were denied. The app may not work properly without all permissions. You can grant them later in settings.',
+            [{ text: 'OK', onPress: () => setPermissionsGranted(true) }]
+          );
+        }
+      } catch (error) {
+        console.error('Permission request error:', error);
+        Alert.alert(
+          'Permission Error',
+          'Failed to request permissions. You can grant them later in settings.',
+          [{ text: 'OK', onPress: () => setPermissionsGranted(true) }]
+        );
+      }
+    } else {
+      setPermissionsGranted(true);
+    }
+  };
+
+  // Request permissions when component mounts
+  useEffect(() => {
+    requestAllPermissions();
+  }, []);
 
   const handleUserTypeSelection = (type: 'student' | 'teacher') => {
     setUserType(type);
@@ -43,9 +121,9 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
     // Mock authentication - just navigate based on user type
     if (userType === 'student') {
-      navigation.navigate('StudentDashboard');
+      navigation.navigate('StudentDashboard', 'student');
     } else if (userType === 'teacher') {
-      navigation.navigate('TeacherDashboard');
+      navigation.navigate('TeacherDashboard', 'teacher');
     }
 
     // Reset form
@@ -136,11 +214,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-      
+
       <View style={styles.mainContainer}>
         <View style={styles.header}>
           <Text style={styles.appTitle}>📱 NabhaLearn</Text>
           <Text style={styles.appSubtitle}>AI-Powered Education Platform</Text>
+          {!permissionsGranted && (
+            <Text style={styles.permissionText}>Requesting permissions...</Text>
+          )}
         </View>
 
         <View style={styles.loginOptionsContainer}>
@@ -193,6 +274,13 @@ const styles = StyleSheet.create({
     fontSize: width * 0.04,
     color: '#666',
     textAlign: 'center',
+  },
+  permissionText: {
+    fontSize: width * 0.035,
+    color: '#4CAF50',
+    textAlign: 'center',
+    marginTop: height * 0.01,
+    fontStyle: 'italic',
   },
   loginOptionsContainer: {
     alignItems: 'center',

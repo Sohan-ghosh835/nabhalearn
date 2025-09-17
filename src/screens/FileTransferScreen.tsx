@@ -16,16 +16,17 @@ type ScreenName = keyof RootStackParamList;
 
 interface Props {
   navigation: {
-    navigate: (screenName: ScreenName) => void;
+    navigate: (screenName: ScreenName, userType?: 'student' | 'teacher') => void;
     goBack: () => void;
   };
+  userType?: 'student' | 'teacher' | null;
 }
 
 const { width, height } = Dimensions.get('window');
 
-const FileTransferScreen: React.FC<Props> = ({ navigation }) => {
-  // For now, we'll assume it's from student unless we add context
-  const isFromTeacher = false;
+const FileTransferScreen: React.FC<Props> = ({ navigation, userType }) => {
+  // Determine if this is from teacher or student based on user type
+  const isFromTeacher = userType === 'teacher';
 
   // Handle Android back button
   useEffect(() => {
