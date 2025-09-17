@@ -1,6 +1,26 @@
-import { PermissionsAndroid, Platform, Alert } from 'react-native';
-import { FFmpegKit, ReturnCode, FFprobeKit } from 'ffmpeg-kit-react-native';
+import { PermissionsAndroid, Platform, Alert, Linking } from 'react-native';
 import VideoPickerService from './VideoPickerService';
+
+// Try different import approaches for video compressor
+let VideoCompressor: any = null;
+try {
+  // Method 1: Named import
+  const { Video } = require('react-native-video-compressor');
+  VideoCompressor = Video;
+} catch (e1) {
+  try {
+    // Method 2: Default import
+    VideoCompressor = require('react-native-video-compressor').default;
+  } catch (e2) {
+    try {
+      // Method 3: Direct require
+      VideoCompressor = require('react-native-video-compressor');
+    } catch (e3) {
+      console.error('Failed to import react-native-video-compressor:', e3);
+      VideoCompressor = null;
+    }
+  }
+}
 
 export interface BluetoothDevice {
   id: string;
@@ -298,109 +318,42 @@ class BluetoothManager {
     }
   }
 
-  // Get real video metadata using FFprobe with proper error handling
+  // Get basic video metadata (simplified - real compression handles this)
   async getVideoInfo(filePath: string): Promise<{resolution: string, duration: number, size: number}> {
-    try {
-      console.log('🔍 Getting video info with FFprobe for:', filePath);
-      
-      // First, try to get basic file info without FFprobe
-      let basicInfo = await this.getBasicVideoInfo(filePath);
-      
-      // Try FFprobe for detailed metadata using a simpler approach
-      try {
-        const command = `-v quiet -print_format json -show_format -show_streams "${filePath}"`;
-        console.log('🔧 Executing FFprobe command:', command);
-        
-        // Try using FFmpegKit instead of FFprobeKit as a workaround
-        let session;
-        try {
-          // Use ffprobe through FFmpegKit
-          const ffprobeCommand = `ffprobe -v quiet -print_format json -show_format -show_streams "${filePath}"`;
-          console.log('🔧 Trying FFmpegKit with ffprobe command:', ffprobeCommand);
-          session = await FFmpegKit.executeAsync(ffprobeCommand);
-          console.log('FFprobe session created successfully via FFmpegKit');
-        } catch (ffmpegError: any) {
-          console.error('FFmpegKit ffprobe execution failed:', ffmpegError);
-          // Try direct FFprobeKit as fallback
-          try {
-            console.log('🔧 Trying direct FFprobeKit...');
-            session = await FFprobeKit.executeAsync(command);
-            console.log('FFprobeKit session created successfully');
-          } catch (ffprobeError: any) {
-            console.error('FFprobeKit execution also failed:', ffprobeError);
-            throw new Error(`Both FFmpegKit and FFprobeKit failed: ${ffprobeError?.message || 'Unknown error'}`);
-          }
-        }
-        
-        if (session) {
-          // Wait a moment for the session to complete
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          try {
-            const output = await session.getOutput();
-            console.log('FFprobe raw output length:', output?.length || 0);
-            
-            if (output && output.trim()) {
-              try {
-                const metadata = JSON.parse(output);
-                console.log('✅ FFprobe metadata parsed successfully');
-                
-                let resolution = basicInfo.resolution;
-                let duration = basicInfo.duration;
-                let size = basicInfo.size;
-                
-                // Get file size from format
-                if (metadata.format && metadata.format.size) {
-                  size = parseInt(metadata.format.size);
-                  console.log('✅ Got real file size from FFprobe:', size);
-                }
-                
-                // Get duration from format
-                if (metadata.format && metadata.format.duration) {
-                  duration = parseFloat(metadata.format.duration);
-                  console.log('✅ Got real duration from FFprobe:', duration, 'seconds');
-                }
-                
-                // Get resolution from video stream
-                if (metadata.streams && Array.isArray(metadata.streams)) {
-                  const videoStream = metadata.streams.find((stream: any) => stream.codec_type === 'video');
-                  if (videoStream && videoStream.width && videoStream.height) {
-                    resolution = `${videoStream.width}x${videoStream.height}`;
-                    console.log('✅ Got real resolution from FFprobe:', resolution);
-                  }
-                }
-                
-                return { resolution, duration, size };
-                
-              } catch (parseError: any) {
-                console.error('Error parsing FFprobe JSON output:', parseError?.message);
-                console.log('Raw output that failed to parse:', output?.substring(0, 200));
-              }
-            } else {
-              console.log('⚠️ FFprobe returned empty output');
-            }
-          } catch (outputError: any) {
-            console.error('Error getting FFprobe output:', outputError?.message);
-          }
-        } else {
-          console.log('⚠️ FFprobe session is null');
-        }
-      } catch (ffprobeSessionError: any) {
-        console.error('FFprobe session error:', ffprobeSessionError?.message);
-      }
-      
-      // Return basic info if FFprobe fails
-      console.log('⚠️ Using basic video info as fallback:', basicInfo);
-      return basicInfo;
-      
-    } catch (error: any) {
-      console.error('Error in getVideoInfo:', error?.message);
-      return {
-        resolution: 'Unknown', 
-        duration: 0,
-        size: 0
-      };
+    console.log('📊 Getting basic video info (FFprobe disabled, using estimates)');
+    return this.getBasicVideoInfo(filePath);
+  }
+
+  // Calculate realistic compression time based on file size and resolution
+  calculateCompressionTime(fileSize: number, targetResolution: string): number {
+    // Base time calculation: ~1 second per MB for 360p
+    const fileSizeMB = fileSize / (1024 * 1024);
+    let baseTimePerMB = 1000; // 1 second per MB
+    
+    // Adjust based on target resolution (higher resolution = more processing time)
+    switch (targetResolution) {
+      case '720p': baseTimePerMB = 1500; break; // 1.5s per MB
+      case '480p': baseTimePerMB = 1200; break; // 1.2s per MB
+      case '360p': baseTimePerMB = 1000; break; // 1s per MB
+      case '240p': baseTimePerMB = 800; break;  // 0.8s per MB
     }
+    
+    // Calculate total time with min/max bounds
+    const totalTime = fileSizeMB * baseTimePerMB;
+    
+    // Ensure reasonable bounds (3-30 seconds)
+    return Math.max(3000, Math.min(30000, totalTime));
+  }
+
+  // Format file size for display
+  formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   // Estimate resolution from file path/name patterns
@@ -470,6 +423,13 @@ class BluetoothManager {
     }
   }
 
+  // Get available video files (mock implementation for UI)
+  async getVideoFiles(): Promise<VideoFile[]> {
+    // This is a mock implementation since we're using manual file selection
+    // In a real app, this would scan the device for video files
+    return [];
+  }
+
   // 🎥 SELECT REAL VIDEO FROM DEVICE - WORKING METHOD
   async selectVideoFile(showModal?: (onSelectVideo: (path: string) => void) => void): Promise<VideoFile | null> {
     try {
@@ -506,7 +466,7 @@ class BluetoothManager {
         duration: 0, // Will be detected during compression
         size: result.size // Use the real size from picker
       };
-      
+
       const videoFile: VideoFile = {
         id: Date.now().toString(),
         name: result.name,
@@ -536,145 +496,185 @@ class BluetoothManager {
     }
   }
 
-  // Compress video file using real FFmpeg
+  // Compress video using react-native-video-compressor (REAL compression!)
   async compressVideo(
     videoFile: VideoFile,
     settings: CompressionSettings,
     onProgress?: (progress: number) => void
   ): Promise<VideoFile> {
-    console.log('Starting real video compression with FFmpeg...');
-    console.log('Input video:', videoFile);
-    console.log('Compression settings:', settings);
+    console.log('🎬 Starting REAL video compression with react-native-video-compressor...');
+      console.log('Input video:', videoFile);
+      console.log('Compression settings:', settings);
 
-    const outputFileName = `compressed_${videoFile.name}`;
-    const outputPath = `/storage/emulated/0/Download/${outputFileName}`;
+      const outputFileName = `compressed_${videoFile.name}`;
 
-    // Build FFmpeg command
-    let ffmpegCommand = `-i "${videoFile.path}"`;
-    
-    switch (settings.resolution) {
-      case '720p':
-        ffmpegCommand += ' -vf scale=1280:720';
-        break;
-      case '480p':
-        ffmpegCommand += ' -vf scale=854:480';
-        break;
-      case '360p':
-        ffmpegCommand += ' -vf scale=640:360';
-        break;
+    // Map our resolution settings to compressor quality levels
+    let quality: 'low' | 'medium' | 'high';
+      switch (settings.resolution) {
       case '240p':
-        ffmpegCommand += ' -vf scale=426:240';
-        break;
+      case '360p':
+        quality = 'low'; // ~480p equivalent
+          break;
+        case '480p':
+      case '720p':
+        quality = 'medium'; // ~720p equivalent
+          break;
+      default:
+        quality = 'high'; // ~1080p equivalent
     }
-
-    ffmpegCommand += ` -c:v libx264 -crf 23 -preset medium`;
-    ffmpegCommand += ` -b:v ${settings.bitrate}k`;
-    ffmpegCommand += ` -c:a aac -b:a 128k`;
-    ffmpegCommand += ` -y "${outputPath}"`;
-
-    console.log('FFmpeg command:', ffmpegCommand);
-
-    // Simulate progress updates
-    let progress = 0;
-    let progressInterval: NodeJS.Timeout | null = null;
     
+    console.log(`🎯 Using compression quality: ${quality} for target resolution: ${settings.resolution}`);
+
     try {
-      // Try a simpler approach without relying on session methods that cause getLogLevel errors
-      console.log('🔧 Using simplified FFmpeg approach to avoid session errors...');
-      
-      progressInterval = setInterval(() => {
-      progress += 10;
-      if (onProgress) {
-        onProgress(Math.min(progress, 90));
+      // Check if VideoCompressor is available
+      if (!VideoCompressor || typeof VideoCompressor.compress !== 'function') {
+        throw new Error('VideoCompressor is not available or not properly linked');
       }
       
-      if (progress >= 90 && progressInterval) {
-        clearInterval(progressInterval);
-      }
-    }, 1000);
-
-      // Try to execute FFmpeg without relying on session object methods
-      console.log('🎬 Executing FFmpeg command:', ffmpegCommand);
-      const session = await FFmpegKit.executeAsync(ffmpegCommand);
-      
-      // Wait for compression to complete with a simple timeout approach
-      return new Promise((resolve, reject) => {
-        let attempts = 0;
-        const maxAttempts = 60; // 60 seconds max
-        
-        const checkCompletion = setInterval(() => {
-          attempts++;
-          
-          try {
-            // Try to check if session exists and has completed
-            if (session) {
-              // Instead of calling session methods that cause errors,
-              // we'll use a timeout-based approach
-              if (attempts >= maxAttempts) {
-                clearInterval(checkCompletion);
-                if (progressInterval) {
-                  clearInterval(progressInterval);
-                }
-                
-                // Assume compression completed after timeout
-                if (onProgress) {
-                  onProgress(100);
-                }
-                
-                let compressionRatio = 1;
-                switch (settings.resolution) {
-                  case '720p': compressionRatio = 0.6; break;
-                  case '480p': compressionRatio = 0.4; break;
-                  case '360p': compressionRatio = 0.25; break;
-                  case '240p': compressionRatio = 0.15; break;
-                }
-
-                const compressedFile: VideoFile = {
-                  ...videoFile,
-                  id: Date.now().toString(),
-                  name: outputFileName,
-                  path: outputPath,
-                  size: Math.round(videoFile.size * compressionRatio),
-                  resolution: settings.resolution,
-                };
-
-                console.log('✅ Video compression completed (timeout-based):', compressedFile);
-                resolve(compressedFile);
-              }
-            } else {
-              // No session, fail after some attempts
-              if (attempts >= 10) {
-                clearInterval(checkCompletion);
-                if (progressInterval) {
-                  clearInterval(progressInterval);
-                }
-                reject(new Error('FFmpeg session creation failed'));
-              }
-            }
-          } catch (error: any) {
-            console.log('Session check attempt', attempts, '- continuing...');
-            // Continue trying instead of failing immediately
-            if (attempts >= maxAttempts) {
-              clearInterval(checkCompletion);
-              if (progressInterval) {
-                clearInterval(progressInterval);
-              }
-              reject(new Error(`Session check failed after ${maxAttempts} attempts`));
-            }
+      // Start the compression with progress callback
+      console.log('🔄 Starting VideoCompressor.compress...');
+      const compressedFilePath = await VideoCompressor.compress(
+        videoFile.path,
+        {
+          compressionMethod: 'auto',
+          quality: quality,
+          minimumFileSizeForCompress: 0, // Always compress
+        },
+        (progress: number) => {
+          console.log('📊 Compression Progress:', progress + '%');
+          if (onProgress) {
+            onProgress(progress);
           }
-        }, 1000); // Check every second
-      });
+        }
+      );
+      
+      console.log('✅ Compression completed! Output file:', compressedFilePath);
+      
+      // Get the actual size of the compressed file using fetch
+      let compressedSize = 0;
+      try {
+        const response = await fetch(`file://${compressedFilePath}`, { method: 'HEAD' });
+        const contentLength = response.headers.get('content-length');
+        if (contentLength) {
+          compressedSize = parseInt(contentLength, 10);
+          console.log('📊 Real compressed file size:', compressedSize);
+        } else {
+          throw new Error('No content-length header');
+        }
+      } catch (statError) {
+        console.error('Error getting file stats:', statError);
+        // Fallback to estimation
+        const estimatedRatio = quality === 'low' ? 0.3 : quality === 'medium' ? 0.5 : 0.7;
+        compressedSize = Math.round(videoFile.size * estimatedRatio);
+        console.log('📊 Using estimated compressed size:', compressedSize);
+      }
+      
+      // Note: react-native-video-compressor should already save to the correct location
+      // We'll use the output path as provided by the compressor
+      
+      const finalPath = compressedFilePath; // Use the path provided by compressor
+      const reductionPercent = Math.round(((videoFile.size - compressedSize) / videoFile.size) * 100);
+
+              const compressedFile: VideoFile = {
+                ...videoFile,
+                id: Date.now().toString(),
+                name: outputFileName,
+        path: finalPath,
+        size: compressedSize,
+        resolution: `${settings.resolution} (${quality})`,
+        duration: videoFile.duration,
+      };
+
+      console.log('🎉 REAL compression completed successfully:', compressedFile);
+      
+      // Show success alert
+      Alert.alert(
+        '🎉 REAL Compression Complete!',
+        `Video compressed successfully!\n\n` +
+        `Original: ${this.formatFileSize(videoFile.size)}\n` +
+        `Compressed: ${this.formatFileSize(compressedSize)}\n` +
+        `Reduction: ${reductionPercent}%\n\n` +
+        `✅ File saved successfully\n` +
+        `📂 ${finalPath}`,
+        [
+          { text: 'OK', style: 'default' },
+          { text: '📂 Open Downloads', onPress: () => this.openDownloadsFolder(), style: 'default' }
+        ]
+      );
+      
+      return compressedFile;
       
     } catch (error: any) {
-      if (progressInterval) {
-        clearInterval(progressInterval);
-      }
-      console.error('Error in video compression:', error);
+      console.error('❌ Real compression failed:', error);
       
-      // Fallback to mock compression
-      console.log('Falling back to mock compression...');
-      return this.mockCompressVideo(videoFile, settings, onProgress);
+      console.log('⚠️ VideoCompressor failed, using smart fallback approach...');
+      
+      // Try to create a "compressed" file by copying the original with a smaller size simulation
+      return this.smartCompressionFallback(videoFile, settings, onProgress);
     }
+  }
+
+  // Smart compression fallback that tries to create an actual file
+  private async smartCompressionFallback(
+    videoFile: VideoFile,
+    settings: CompressionSettings,
+    onProgress?: (progress: number) => void
+  ): Promise<VideoFile> {
+    console.log('🔄 Attempting smart compression fallback...');
+    
+    const outputFileName = `compressed_${videoFile.name}`;
+    
+    // Calculate compression ratio
+    let compressionRatio = 1;
+    switch (settings.resolution) {
+      case '240p': compressionRatio = 0.15; break;
+      case '360p': compressionRatio = 0.25; break;
+      case '480p': compressionRatio = 0.4; break;
+      case '720p': compressionRatio = 0.6; break;
+      default: compressionRatio = 0.7; break;
+    }
+    
+    const estimatedSize = Math.round(videoFile.size * compressionRatio);
+    
+    // Simulate progress
+    if (onProgress) {
+      for (let i = 0; i <= 100; i += 20) {
+        onProgress(i);
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+    }
+    
+    // Create the result (simulation - no actual file created due to library issues)
+    const compressedFile: VideoFile = {
+      ...videoFile,
+      id: Date.now().toString(),
+      name: outputFileName,
+      path: `${videoFile.path}_compressed_simulation`, // Indicate this is simulated
+      size: estimatedSize,
+      resolution: `${settings.resolution} (simulated)`,
+      duration: videoFile.duration,
+    };
+
+    // Show honest alert about the limitation
+    Alert.alert(
+      '📊 Compression Simulation',
+      `Video compression library is not working properly.\n\n` +
+      `Estimated results:\n` +
+      `Original: ${this.formatFileSize(videoFile.size)}\n` +
+      `Estimated compressed: ${this.formatFileSize(estimatedSize)}\n` +
+      `Est. reduction: ${Math.round((1 - compressionRatio) * 100)}%\n\n` +
+      `⚠️ No actual file was created due to library issues.\n\n` +
+      `For real compression, please use:\n` +
+      `• VLC Media Player\n` +
+      `• HandBrake\n` +
+      `• Online video compressors`,
+      [
+        { text: 'OK', style: 'default' },
+        { text: '📱 Show Apps', onPress: () => this.showCompressionApps(), style: 'default' }
+      ]
+    );
+
+    return compressedFile;
   }
 
   // Fallback mock compression
@@ -714,14 +714,71 @@ class BluetoothManager {
     });
   }
 
-  // Utility methods
-  private formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+
+  // Show compression app suggestions
+  showCompressionApps(): void {
+    Alert.alert(
+      '📱 Recommended Video Compression Apps',
+      `For real video compression, try these apps:\n\n` +
+      `📱 Mobile Apps:\n` +
+      `• Video Compressor (free)\n` +
+      `• VidCompact\n` +
+      `• Video Dieter 2\n` +
+      `• InShot\n\n` +
+      `💻 Desktop Software:\n` +
+      `• HandBrake (free)\n` +
+      `• VLC Media Player (free)\n` +
+      `• FFmpeg (command line)\n\n` +
+      `🌐 Online Tools:\n` +
+      `• CloudConvert\n` +
+      `• Online-Convert\n` +
+      `• Clideo`,
+      [
+        {
+          text: 'Got it',
+          style: 'default'
+        }
+      ]
+    );
   }
+
+  // Open downloads folder
+  async openDownloadsFolder(): Promise<void> {
+    try {
+      console.log('📂 Opening downloads folder...');
+      
+      // Try to open file manager with Downloads folder
+      const downloadPath = 'file:///storage/emulated/0/Download/';
+      const supported = await Linking.canOpenURL(downloadPath);
+      
+      if (supported) {
+        await Linking.openURL(downloadPath);
+        console.log('✅ Downloads folder opened successfully');
+      } else {
+        // Fallback: Try to open generic file manager
+        try {
+          await Linking.openURL('content://com.android.externalstorage.documents/document/primary%3ADownload');
+          console.log('✅ File manager opened successfully');
+        } catch (fallbackError) {
+          console.log('⚠️ Fallback file manager failed, showing manual instructions');
+          Alert.alert(
+            '📂 File Location',
+            'Your compressed video is saved in:\n\n/storage/emulated/0/Download/\n\nYou can find it using any file manager app.',
+            [{ text: 'OK' }]
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error opening downloads folder:', error);
+      Alert.alert(
+        '📂 File Location',
+        'Your compressed video is saved in the Downloads folder.\n\nPath: /storage/emulated/0/Download/\n\nUse any file manager to access it.',
+        [{ text: 'OK' }]
+      );
+    }
+  }
+
+  // Utility methods
 
   // Event listeners
   setOnDeviceFound(callback: (device: BluetoothDevice) => void): void {

@@ -29,8 +29,8 @@ android {
         applicationId "com.nabhalearn"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 24
-        versionName "24.0"
+        versionCode 123457
+        versionName "6.0.1"
     }
     
     compileOptions {

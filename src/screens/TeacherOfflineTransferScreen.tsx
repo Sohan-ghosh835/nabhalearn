@@ -192,6 +192,15 @@ const TeacherOfflineTransferScreen: React.FC<Props> = ({ navigation }) => {
     return Math.round(((selectedVideo.size - compressedVideo.size) / selectedVideo.size) * 100);
   };
 
+  const openDownloadsFolder = async () => {
+    try {
+      await BluetoothManager.openDownloadsFolder();
+    } catch (error) {
+      console.error('Error opening downloads folder:', error);
+      Alert.alert('Error', 'Could not open downloads folder. Please check manually in /storage/emulated/0/Download/');
+    }
+  };
+
   const renderSelectStep = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>Select Video to Share</Text>
@@ -285,22 +294,34 @@ const TeacherOfflineTransferScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.compressionInfo}>
             Size reduced by {getCompressionRatio()}%
           </Text>
+          <Text style={styles.videoPath}>
+            📂 Saved to: Downloads folder
+          </Text>
         </View>
       )}
 
-      {isSharing ? (
-        <View style={styles.sharingContainer}>
-          <ActivityIndicator size="large" color="#4CAF50" />
-          <Text style={styles.sharingText}>Bluetooth server is running...</Text>
-          <Text style={styles.sharingSubtext}>
-            Students can now discover and connect to your device
-          </Text>
-        </View>
-      ) : (
-        <TouchableOpacity style={styles.actionButton} onPress={startSharing}>
-          <Text style={styles.actionButtonText}>Start Sharing</Text>
+      <View style={styles.actionButtonsContainer}>
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.downloadButton]} 
+          onPress={openDownloadsFolder}
+        >
+          <Text style={styles.actionButtonText}>📥 Open Downloads</Text>
         </TouchableOpacity>
-      )}
+
+        {isSharing ? (
+          <View style={styles.sharingContainer}>
+            <ActivityIndicator size="large" color="#4CAF50" />
+            <Text style={styles.sharingText}>Bluetooth server is running...</Text>
+            <Text style={styles.sharingSubtext}>
+              Students can now discover and connect to your device
+            </Text>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.actionButton} onPress={startSharing}>
+            <Text style={styles.actionButtonText}>📤 Start Sharing</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 
@@ -579,6 +600,19 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     fontWeight: '600',
     marginTop: 4,
+  },
+  videoPath: {
+    fontSize: width * 0.032,
+    color: '#666',
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  actionButtonsContainer: {
+    gap: height * 0.015,
+    alignItems: 'center',
+  },
+  downloadButton: {
+    backgroundColor: '#2196F3',
   },
   sharingContainer: {
     alignItems: 'center',

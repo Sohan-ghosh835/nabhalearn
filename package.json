@@ -1,6 +1,6 @@
 {
   "name": "NabhaLearn",
-  "version": "0.0.1",
+  "version": "6.0.0",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -10,13 +10,15 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "ffmpeg-kit-react-native": "^6.0.2",
     "invariant": "^2.2.4",
     "react": "18.2.0",
     "react-native": "0.74.5",
     "react-native-bluetooth-classic": "^1.73.0-rc.14",
     "react-native-permissions": "^5.4.2",
-    "react-native-video": "^6.16.1"
+    "react-native-video": "^6.16.1",
+    "react-native-video-compressor": "^0.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
