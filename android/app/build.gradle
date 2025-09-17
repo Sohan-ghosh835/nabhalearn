@@ -63,6 +63,12 @@ android {
     }
 }
 
+repositories {
+    google()
+    mavenCentral()
+    maven { url "https://www.jitpack.io" }
+}
+
 dependencies {
     implementation("com.facebook.react:react-android:0.74.5")
     implementation("com.facebook.react:hermes-android:0.74.5")
