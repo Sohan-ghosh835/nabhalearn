@@ -9,6 +9,7 @@ import {
   Dimensions,
   BackHandler,
 } from 'react-native';
+import { ScrollView } from 'react-native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
 type ScreenName = keyof RootStackParamList;
@@ -36,45 +37,97 @@ const SyncProgressScreen: React.FC<Props> = ({ navigation }) => {
     return () => backHandler.remove();
   }, [navigation]);
 
+  // prototype data
+  const overview = {
+    totalStudyTime: '5h 42m this week',
+    lessonsCompleted: 12,
+    quizzesPassed: 7,
+    currentStreakDays: 4,
+  };
+
+  const topics = [
+    { name: 'Mathematics', time: '1h 50m', completion: 0.72 },
+    { name: 'Science', time: '1h 15m', completion: 0.58 },
+    { name: 'English', time: '52m', completion: 0.41 },
+    { name: 'History', time: '38m', completion: 0.3 },
+  ];
+
+  const activity = [
+    { label: 'Quiz: Fractions Basics', result: '8/10', when: 'Today, 10:15 AM' },
+    { label: 'Lesson: Photosynthesis', result: 'Completed', when: 'Yesterday, 6:20 PM' },
+    { label: 'Practice: Grammar - Tenses', result: '15 mins', when: 'Yesterday, 4:05 PM' },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-      
+
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={navigation.goBack}>
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Sync Progress</Text>
       </View>
-      
-      <View style={styles.content}>
-        <View style={styles.iconContainer}>
-          <Text style={styles.icon}>🔄</Text>
+
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Overview</Text>
+          <View style={styles.cardRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{overview.totalStudyTime}</Text>
+              <Text style={styles.statLabel}>Time Spent</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{overview.lessonsCompleted}</Text>
+              <Text style={styles.statLabel}>Lessons</Text>
+            </View>
+          </View>
+          <View style={styles.cardRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{overview.quizzesPassed}</Text>
+              <Text style={styles.statLabel}>Quizzes Passed</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>{overview.currentStreakDays} days</Text>
+              <Text style={styles.statLabel}>Current Streak</Text>
+            </View>
+          </View>
         </View>
-        
-        <Text style={styles.title}>Syncing Progress...</Text>
-        <Text style={styles.subtitle}>Sync Complete</Text>
-        
-        <View style={styles.infoContainer}>
-          <Text style={styles.infoText}>
-            This screen will show:
-          </Text>
-          <Text style={styles.featureItem}>• Student learning progress</Text>
-          <Text style={styles.featureItem}>• Completed lessons and quizzes</Text>
-          <Text style={styles.featureItem}>• Time spent on each topic</Text>
-          <Text style={styles.featureItem}>• Performance analytics</Text>
-          <Text style={styles.featureItem}>• Sync status with server</Text>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Topics</Text>
+          {topics.map((t, i) => (
+            <View key={i} style={styles.topicCard}>
+              <View style={styles.topicHeader}>
+                <Text style={styles.topicName}>{t.name}</Text>
+                <Text style={styles.topicTime}>{t.time}</Text>
+              </View>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressBar, { width: `${Math.round(t.completion * 100)}%` }]} />
+              </View>
+              <Text style={styles.progressLabel}>{Math.round(t.completion * 100)}% complete</Text>
+            </View>
+          ))}
         </View>
-        
-        <View style={styles.placeholderContainer}>
-          <Text style={styles.placeholderText}>
-            ✅ Sync Complete
-          </Text>
-          <Text style={styles.placeholderSubtext}>
-            All data has been synchronized successfully
-          </Text>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          {activity.map((a, i) => (
+            <View key={i} style={styles.activityRow}>
+              <View style={styles.activityDot} />
+              <View style={styles.activityTextWrap}>
+                <Text style={styles.activityLabel}>{a.label} — <Text style={styles.activityResult}>{a.result}</Text></Text>
+                <Text style={styles.activityWhen}>{a.when}</Text>
+              </View>
+            </View>
+          ))}
         </View>
-      </View>
+
+        <View style={styles.syncCard}>
+          <Text style={styles.syncTitle}>✅ Sync Complete</Text>
+          <Text style={styles.syncSubtitle}>All data synchronized successfully</Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -111,78 +164,134 @@ const styles = StyleSheet.create({
     color: '#333',
     marginTop: 20,
   },
-  content: {
+  scroll: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  },
+  scrollContent: {
     padding: width * 0.05,
+    gap: 16,
   },
-  iconContainer: {
-    marginBottom: height * 0.04,
-  },
-  icon: {
-    fontSize: width * 0.2,
-  },
-  title: {
-    fontSize: width * 0.07,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: height * 0.015,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: width * 0.045,
-    color: '#666',
-    marginBottom: height * 0.05,
-    textAlign: 'center',
-  },
-  infoContainer: {
+  section: {
     backgroundColor: '#fff',
-    padding: width * 0.06,
     borderRadius: 16,
-    marginBottom: height * 0.04,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  infoText: {
-    fontSize: width * 0.04,
-    color: '#333',
-    marginBottom: height * 0.02,
-    fontWeight: '600',
-  },
-  featureItem: {
-    fontSize: width * 0.035,
-    color: '#666',
-    marginBottom: height * 0.01,
-    lineHeight: height * 0.025,
-  },
-  placeholderContainer: {
-    backgroundColor: '#d4edda',
     padding: width * 0.05,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#c3e6cb',
-    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  placeholderText: {
+  sectionTitle: {
     fontSize: width * 0.05,
-    fontWeight: 'bold',
-    color: '#155724',
-    textAlign: 'center',
-    marginBottom: height * 0.01,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 10,
   },
-  placeholderSubtext: {
-    fontSize: width * 0.035,
+  cardRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    borderRadius: 12,
+    padding: 12,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#212529',
+  },
+  statLabel: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#6c757d',
+  },
+  topicCard: {
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    backgroundColor: '#fff',
+  },
+  topicHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  topicName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#343a40',
+  },
+  topicTime: {
+    fontSize: 13,
+    color: '#6c757d',
+  },
+  progressTrack: {
+    height: 10,
+    backgroundColor: '#e9ecef',
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#007AFF',
+  },
+  progressLabel: {
+    marginTop: 6,
+    fontSize: 12,
+    color: '#6c757d',
+  },
+  activityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  activityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#28a745',
+    marginRight: 10,
+  },
+  activityTextWrap: {
+    flex: 1,
+  },
+  activityLabel: {
+    fontSize: 14,
+    color: '#212529',
+  },
+  activityResult: {
+    fontWeight: '700',
+  },
+  activityWhen: {
+    fontSize: 12,
+    color: '#6c757d',
+    marginTop: 2,
+  },
+  syncCard: {
+    backgroundColor: '#d4edda',
+    borderColor: '#c3e6cb',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+  },
+  syncTitle: {
     color: '#155724',
+    fontWeight: '700',
+    fontSize: 16,
+    marginBottom: 4,
     textAlign: 'center',
-    lineHeight: height * 0.025,
+  },
+  syncSubtitle: {
+    color: '#155724',
+    fontSize: 13,
+    textAlign: 'center',
   },
 });
 

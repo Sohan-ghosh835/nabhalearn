@@ -1,15 +1,20 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   SafeAreaView,
   StatusBar,
   TouchableOpacity,
   Dimensions,
   BackHandler,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { sendChatMessages, ChatMessage } from '../services/ChatService';
 
 type ScreenName = keyof RootStackParamList;
 
@@ -23,6 +28,12 @@ interface Props {
 const { width, height } = Dimensions.get('window');
 
 const AIChatScreen: React.FC<Props> = ({ navigation }) => {
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { role: 'assistant', content: 'Hi! I am your NabhaLearn AI assistant. How can I help you today?' },
+  ]);
+  const [input, setInput] = useState<string>('');
+  const [isSending, setIsSending] = useState<boolean>(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   // Handle Android back button
   useEffect(() => {
     const backAction = () => {
@@ -36,45 +47,73 @@ const AIChatScreen: React.FC<Props> = ({ navigation }) => {
     return () => backHandler.remove();
   }, [navigation]);
 
+  const onSend = useCallback(async () => {
+    const trimmed = input.trim();
+    if (!trimmed || isSending) return;
+    const userMsg: ChatMessage = { role: 'user', content: trimmed };
+    setMessages(prev => [...prev, userMsg]);
+    setInput('');
+    setIsSending(true);
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    try {
+      const response = await sendChatMessages([...messages, userMsg], controller.signal);
+      setMessages(prev => [...prev, response.message]);
+    } catch (err: any) {
+      setMessages(prev => [
+        ...prev,
+        { role: 'assistant', content: `Sorry, I ran into an error: ${err?.message || 'Unknown error'}` },
+      ]);
+    } finally {
+      setIsSending(false);
+      abortControllerRef.current = null;
+    }
+  }, [input, isSending, messages]);
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-      
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={navigation.goBack}>
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>AI Chat</Text>
       </View>
-      
-      <View style={styles.content}>
-        <View style={styles.iconContainer}>
-          <Text style={styles.icon}>🤖</Text>
+
+      <KeyboardAvoidingView style={styles.chatContainer} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView style={styles.messagesScroll} contentContainerStyle={styles.messagesContainer}>
+          {messages.map((m, idx) => (
+            <View key={idx} style={[styles.messageBubble, m.role === 'user' ? styles.userBubble : styles.assistantBubble]}>
+              <Text style={[styles.messageText, m.role === 'user' ? styles.userText : styles.assistantText]}>{m.content}</Text>
+            </View>
+          ))}
+        </ScrollView>
+
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.inputBox}
+            value={input}
+            onChangeText={setInput}
+            placeholder="Type your message"
+            placeholderTextColor="#999"
+            multiline
+          />
+          <TouchableOpacity
+            style={[styles.sendButton, isSending ? styles.sendButtonDisabled : null]}
+            onPress={onSend}
+            disabled={isSending}
+          >
+            <Text style={styles.sendButtonText}>{isSending ? '...' : 'Send'}</Text>
+          </TouchableOpacity>
         </View>
-        
-        <Text style={styles.title}>AI Chat Area</Text>
-        <Text style={styles.subtitle}>Your AI learning assistant</Text>
-        
-        <View style={styles.infoContainer}>
-          <Text style={styles.infoText}>
-            This AI chat will help you with:
-          </Text>
-          <Text style={styles.featureItem}>• Answering questions about lessons</Text>
-          <Text style={styles.featureItem}>• Explaining difficult concepts</Text>
-          <Text style={styles.featureItem}>• Providing study tips and strategies</Text>
-          <Text style={styles.featureItem}>• Creating practice problems</Text>
-          <Text style={styles.featureItem}>• 24/7 learning support</Text>
-        </View>
-        
-        <View style={styles.placeholderContainer}>
-          <Text style={styles.placeholderText}>
-            🚧 Coming Soon 🚧
-          </Text>
-          <Text style={styles.placeholderSubtext}>
-            AI chat functionality will be implemented in a future update
-          </Text>
-        </View>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -111,78 +150,74 @@ const styles = StyleSheet.create({
     color: '#333',
     marginTop: 20,
   },
-  content: {
+  chatContainer: {
     flex: 1,
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: width * 0.04,
+    paddingVertical: width * 0.03,
+  },
+  messagesScroll: {
+    flex: 1,
+  },
+  messagesContainer: {
+    paddingVertical: width * 0.02,
+    gap: 10,
+  },
+  messageBubble: {
+    maxWidth: '85%',
+    padding: 12,
+    borderRadius: 12,
+    marginVertical: 4,
+  },
+  userBubble: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#007AFF',
+  },
+  assistantBubble: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#E9ECEF',
+  },
+  messageText: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  userText: {
+    color: '#fff',
+  },
+  assistantText: {
+    color: '#212529',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+    paddingTop: 8,
+  },
+  inputBox: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 140,
+    backgroundColor: '#fff',
+    borderColor: '#dee2e6',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  sendButton: {
+    height: 44,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: '#28a745',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: width * 0.05,
   },
-  iconContainer: {
-    marginBottom: height * 0.04,
+  sendButtonDisabled: {
+    backgroundColor: '#94d3a2',
   },
-  icon: {
-    fontSize: width * 0.2,
-  },
-  title: {
-    fontSize: width * 0.07,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: height * 0.015,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: width * 0.045,
-    color: '#666',
-    marginBottom: height * 0.05,
-    textAlign: 'center',
-  },
-  infoContainer: {
-    backgroundColor: '#fff',
-    padding: width * 0.06,
-    borderRadius: 16,
-    marginBottom: height * 0.04,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  infoText: {
-    fontSize: width * 0.04,
-    color: '#333',
-    marginBottom: height * 0.02,
+  sendButtonText: {
+    color: '#fff',
     fontWeight: '600',
-  },
-  featureItem: {
-    fontSize: width * 0.035,
-    color: '#666',
-    marginBottom: height * 0.01,
-    lineHeight: height * 0.025,
-  },
-  placeholderContainer: {
-    backgroundColor: '#fff3cd',
-    padding: width * 0.05,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#ffeaa7',
-    width: '100%',
-  },
-  placeholderText: {
-    fontSize: width * 0.05,
-    fontWeight: 'bold',
-    color: '#856404',
-    textAlign: 'center',
-    marginBottom: height * 0.01,
-  },
-  placeholderSubtext: {
-    fontSize: width * 0.035,
-    color: '#856404',
-    textAlign: 'center',
-    lineHeight: height * 0.025,
   },
 });
 

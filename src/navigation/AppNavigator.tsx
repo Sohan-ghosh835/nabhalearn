@@ -9,6 +9,7 @@ import CloudTransferScreen from '../screens/CloudTransferScreen';
 import AIChatScreen from '../screens/AIChatScreen';
 import SyncProgressScreen from '../screens/SyncProgressScreen';
 import TeacherOfflineTransferScreen from '../screens/TeacherOfflineTransferScreen';
+import DownloadLecturesScreen from '../screens/DownloadLecturesScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -20,6 +21,7 @@ export type RootStackParamList = {
   AIChat: undefined;
   SyncProgress: undefined;
   TeacherOfflineTransfer: undefined;
+  DownloadLectures: undefined;
 };
 
 type ScreenName = keyof RootStackParamList;
@@ -71,6 +73,8 @@ const AppNavigator: React.FC = () => {
         return <SyncProgressScreen navigation={{ navigate, goBack }} />;
       case 'TeacherOfflineTransfer':
         return <TeacherOfflineTransferScreen navigation={{ navigate, goBack }} />;
+      case 'DownloadLectures':
+        return <DownloadLecturesScreen navigation={{ navigate, goBack }} />;
       default:
         return <LoginScreen navigation={{ navigate, goBack }} />;
     }

@@ -207,3 +207,4 @@ out/
 # Local configuration
 config/local.js
 config/local.json
+src/config/secrets.ts

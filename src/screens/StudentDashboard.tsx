@@ -83,6 +83,17 @@ const StudentDashboard: React.FC<Props> = ({ navigation }) => {
               View your learning progress and sync data
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.optionCard}
+            onPress={() => navigation.navigate('DownloadLectures')}
+          >
+            <Text style={styles.optionIcon}>⬇️</Text>
+            <Text style={styles.optionTitle}>Download Lectures</Text>
+            <Text style={styles.optionDescription}>
+              Browse sample videos and choose download quality
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
